@@ -125,8 +125,11 @@ function [itMat] = algo_esc_val2(N, mGrid, kw)
                 itMat(i,j) = 0;
                 continue
             end
-            log_zn = reallog(x + y) * 0.5;
-            nu = reallog( log_zn * inv_lnr) * inv_ln2;
+            nu = -1;
+            if esc2 >= 10000
+                log_zn = reallog(x+y) * 0.5;
+                nu = reallog( log_zn * inv_lnr) * inv_ln2; 
+            end
             % Consider potential function in iteration
             itMat(i,j) = it + 1 - nu;
         end

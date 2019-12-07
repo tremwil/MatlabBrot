@@ -22,7 +22,7 @@ function varargout = mandelPlotter(varargin)
 
 % Edit the above text to modify the response to help mandelPlotter
 
-% Last Modified by GUIDE v2.5 05-Dec-2019 23:36:25
+% Last Modified by GUIDE v2.5 06-Dec-2019 09:30:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,7 +59,7 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 % UIWAIT makes mandelPlotter wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+% uiwait(handles.mainWindow);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -189,8 +189,8 @@ end
 
 
 % --------------------------------------------------------------------
-function Untitled_1_Callback(hObject, eventdata, handles)
-% hObject    handle to Untitled_1 (see GCBO)
+function mainMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to mainMenu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -638,3 +638,33 @@ function txtBoxMandelCy_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in cbAxes.
+function cbAxes_Callback(hObject, eventdata, handles)
+% hObject    handle to cbAxes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cbAxes
+
+
+% --- Executes on button press in btnResetView.
+function btnResetView_Callback(hObject, eventdata, handles)
+% hObject    handle to btnResetView (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in btnHelp.
+function btnHelp_Callback(hObject, eventdata, handles)
+% hObject    handle to btnHelp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in btnResetAll.
+function btnResetAll_Callback(hObject, eventdata, handles)
+% hObject    handle to btnResetAll (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
