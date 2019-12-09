@@ -5,14 +5,14 @@ function [itMat] = julia(c, N, imSz, mSpace, varargin)
     if nargin > 3 && ~isnumeric(mSpace); varargin = [{mSpace} varargin]; end
     % Check for default optional arguments
     if nargin < 3 || ~isnumeric(imSz); imSz = [350 200]; end
-    if nargin < 4 || ~isnumeric(mSpace); mSpace = [-2.5 -1 1 1]; end
+    if nargin < 4 || ~isnumeric(mSpace); mSpace = [-2.5 1 -1 1]; end
     % Parse user parameters
     kw = parseParams(varargin);
     % Make 3D matrix containing the complex numbers as real/imag pairs
     % This is prefered to a complex matrix because Matlab is very slow with
     % complex matrices
-    [re,im] = meshgrid(linspace(mSpace(1),mSpace(3),imSz(1)),...
-                           linspace(mSpace(2),mSpace(4),imSz(2)));
+    [re,im] = meshgrid(linspace(mSpace(1),mSpace(2),imSz(1)),...
+                           linspace(mSpace(3),mSpace(4),imSz(2)));
     mGrid = cat(3, re, im);
     % Choose algorithm according to keywords
     algo = kw('algorithm');
@@ -112,7 +112,7 @@ function [itMat] = algo_esc_val2(c, N, mGrid, kw)
     
     szX = size(mGrid,2);            % Width of grid in pixels
     szY = size(mGrid,1);            % Height of grid in pixels
-    itMat = zeros(szY,szX);         % Iteration matrix (0 = in set)
+    itMat = zeros(szY,szX);         % Iteration matrix
     % Iterate through every pixel
     for j=1:szX
         for i=1:szY
@@ -120,8 +120,8 @@ function [itMat] = algo_esc_val2(c, N, mGrid, kw)
             % last square values of x and y
             [it,x,y] = ptEscape2(cx,cy,mGrid(i,j,1),mGrid(i,j,2),N,esc2);
             % Compute potential function
-            if it == 0
-                itMat(i,j) = 0;
+            if it == N
+                itMat(i,j) = N;
                 continue
             end
             nu = -1;

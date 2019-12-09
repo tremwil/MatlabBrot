@@ -5,14 +5,14 @@ function [itMat] = mandelbrot(N, imSz, mSpace, varargin)
     if nargin > 2 && ~isnumeric(mSpace); varargin = [{mSpace} varargin]; end
     % Check for default optional arguments
     if nargin < 2 || ~isnumeric(imSz); imSz = [350 200]; end
-    if nargin < 3 || ~isnumeric(mSpace); mSpace = [-2.5 -1 1 1]; end
+    if nargin < 3 || ~isnumeric(mSpace); mSpace = [-2.5 1 -1 1]; end
     % Parse user parameters
     kw = parseParams(varargin);
     % Make 3D matrix containing the complex numbers as real/imag pairs
     % This is prefered to a complex matrix because Matlab is very slow with
     % complex matrices
-    [re,im] = meshgrid(linspace(mSpace(1),mSpace(3),imSz(1)),...
-                           linspace(mSpace(2),mSpace(4),imSz(2)));
+    [re,im] = meshgrid(linspace(mSpace(1),mSpace(2),imSz(1)),...
+                           linspace(mSpace(3),mSpace(4),imSz(2)));
     mGrid = cat(3, re, im);
     % Choose algorithm according to keywords
     algo = kw('algorithm');
@@ -113,7 +113,7 @@ function [itMat] = algo_esc_val2(N, mGrid, kw)
     
     szX = size(mGrid,2);            % Width of grid in pixels
     szY = size(mGrid,1);            % Height of grid in pixels
-    itMat = zeros(szY,szX);         % Iteration matrix (0 = in set)
+    itMat = zeros(szY,szX);         % Iteration matrix
     % Iterate through every pixel
     for j=1:szX
         for i=1:szY
@@ -121,8 +121,8 @@ function [itMat] = algo_esc_val2(N, mGrid, kw)
             % last square values of x and y
             [it,x,y] = ptEscape2(mGrid(i,j,1), mGrid(i,j,2), N,esc2,bc);
             % Compute potential function
-            if it == 0
-                itMat(i,j) = 0;
+            if it == N
+                itMat(i,j) = N;
                 continue
             end
             nu = -1;
@@ -151,15 +151,17 @@ function [itMat] = algo_quadtree(N, mGrid, kw)
     szY = size(mGrid,1);            % Height of grid in pixels
     itMat = zeros(szY,szX);         % Iteration matrix (0 = in set)
     
-    rectQueue = zeros(szX*szY,4);   % LIFO queue to store rectangles
+    rectQueue = zeros(szX*szY,4);   % FIFO queue to store rectangles
     rectQueue(1,:) = [1 1 szX szY]; % Init with entire screen space
-    li = 1;                         % Last index for LIFO queue
+    li = 1;                         % Last index for FIFO queue
+    fi = 1;                         % First index for FIFO queue
+    hasIntersected = 0;             % Quadtree search to first lemniscate
     % While rectangles queued,
-    while li > 0
+    while rectQueue(fi,1) ~= 0
         % Extract last rect in queue, precompute its inside rectangle
-        cr = rectQueue(li,:);
+        cr = rectQueue(fi,:);
         cri = [cr(1)+1 cr(2)+1 cr(3)-1 cr(4)-1];
-        li = li-1;
+        fi = fi+1;
         
         uniform = 1;    % True if border is at same iteration level
         itC = -1;       % Current iteration
@@ -184,10 +186,12 @@ function [itMat] = algo_quadtree(N, mGrid, kw)
         dy = cr(4)-cr(2)+1;
         % Check for interior pixels
         if ~(dx==2 || dy==2)
-            if uniform % Uniform, fill interior with iteration level
+            % Uniform, fill interior with iteration level
+            if uniform && hasIntersected
                 itMat(cri(2):cri(4),cri(1):cri(3)) = itC; 
             else
-                % Not uniform, subdivide into 4 rectangles and add to LIFO
+                % Not uniform, subdivide into 4 rectangles and add to FIFO
+                hasIntersected = 1;
                 cx = cr(1)+floor(dx/2);
                 cy = cr(2)+floor(dy/2);
                 rectQueue(li+1:li+4,:) = [
@@ -213,30 +217,32 @@ function [itMat] = algo_quadtree2(N, mGrid, kw)
     szY = size(mGrid,1);            % Height of grid in pixels
     itMat = zeros(szY,szX);         % Iteration matrix
     
-    rectQueue = zeros(szX*szY,4);   % LIFO queue to store rectangles
+    rectQueue = zeros(szX*szY,4);   % FIFO queue to store rectangles
     rectQueue(1,:) = [1 1 szX szY]; % Init with entire screen space
-    li = 1;                         % Last index for LIFO queue
+    li = 1;                         % Last index for FIFO queue
+    fi = 1;                         % Fist index for FIFO queue
+    hasIntersected = 0;             % Quadtree search to first lemniscate
     % While rectangles queued,
-    while li > 0
+    while rectQueue(fi,1) ~= 0
         % Extract last rect in queue, precompute its inside rectangle
-        cr = rectQueue(li,:);
+        cr = rectQueue(fi,:);
         cri = [cr(1)+1 cr(2)+1 cr(3)-1 cr(4)-1];
-        li = li-1;
+        fi = fi+1;
         
         uniform = 1;    % True if border is at same iteration level
         itC = -1;       % Current iteration
 
         for j=cr(1):cr(3)   % Check horizontal bounds
-            it1 = ptEscape(mGrid(cr(2),j,1), mGrid(cr(2),j,2), N,esc2,bc);
-            it2 = ptEscape(mGrid(cr(4),j,1), mGrid(cr(4),j,2), N,esc2,bc);
+            it1 = ptEscape2(mGrid(cr(2),j,1), mGrid(cr(2),j,2), N,esc2,bc);
+            it2 = ptEscape2(mGrid(cr(4),j,1), mGrid(cr(4),j,2), N,esc2,bc);
             itMat(cr(2),j) = it1;
             itMat(cr(4),j) = it2;
             if itC == -1; itC = it1; end
             if itC ~= it1 || itC ~= it2; uniform = 0; end
         end
         for i=cri(2):cri(4) % Check vertical bounds
-            it1 = ptEscape(mGrid(i,cr(1),1), mGrid(i,cr(1),2), N,esc2,bc);
-            it2 = ptEscape(mGrid(i,cr(3),1), mGrid(i,cr(3),2), N,esc2,bc);
+            it1 = ptEscape2(mGrid(i,cr(1),1), mGrid(i,cr(1),2), N,esc2,bc);
+            it2 = ptEscape2(mGrid(i,cr(3),1), mGrid(i,cr(3),2), N,esc2,bc);
             itMat(i,cr(1)) = it1;
             itMat(i,cr(3)) = it2;
             if itC ~= it1 || itC ~= it2; uniform = 0; end
@@ -246,10 +252,12 @@ function [itMat] = algo_quadtree2(N, mGrid, kw)
         dy = cr(4)-cr(2)+1;
         % Check for interior pixels
         if ~(dx==2 || dy==2)
-            if uniform % Uniform, fill interior with iteration level
+            % Uniform, fill interior with iteration level
+            if uniform && hasIntersected
                 itMat(cri(2):cri(4),cri(1):cri(3)) = itC; 
             else
                 % Not uniform, subdivide into 4 rectangles and add to LIFO
+                hasIntersected = 1;
                 cx = cr(1)+floor(dx/2);
                 cy = cr(2)+floor(dy/2);
                 rectQueue(li+1:li+4,:) = [

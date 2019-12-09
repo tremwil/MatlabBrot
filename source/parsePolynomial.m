@@ -7,8 +7,8 @@ function [coefs, valid] = parsePolynomial(str)
          str = ['+' str];
     end
     % Match RegExp corresponding to a monomial expression
-    expr = ['(?<coef>[+-][0-9]*(?:\.\d+)?)',...          % Sign+Coef. 
-            '\*?(?<var>[a-z](?:\^[0-9]+)?)?']; % Var + Exp.
+    expr = ['(?<coef>(+-|[+-])[0-9]*(?:\.\d+)?)',...    % Sign+Coef. 
+            '\*?(?<var>[a-z](?:\^[0-9]+)?)?'];          % Var + Exp.
     % Check if full string is matched
     matches = regexp(str, expr, 'match');
     if ~isequal(strjoin(matches,''), str)
@@ -23,14 +23,23 @@ function [coefs, valid] = parsePolynomial(str)
     var = '';                       % Variable
     % Parse tokens into the coef. and exp. matrices
     for i=1:length(tokens)
-        % Parse coefficient and handle implicit 1 coef
         coef = tokens(i).coef;
+        cvar = tokens(i).var;
+        % Handle +- signs like in x^3 + -2x^2 by removing the +
+        if length(coef) >= 2 && strcmp(coef(1:2), '+-')
+            coef = coef(2:end);
+        end
+        % Parse coefficient and handle implicit 1 coef
         if strcmp(coef, '-') || strcmp(coef, '+')
+            if isempty(cvar)    % Entire monomial is just a sign symbol,
+                coefs = [];     % incorrect
+                valid = 0;
+                return;                
+            end
             coef = [coef '1'];
         end
         cMat(i) = str2double(coef);
         % Parse variable and handle constant (implicit x^0)
-        cvar = tokens(i).var;
         if isempty(cvar)    % Implicit x^0 (constant)
             eMat(i) = 0;
             continue;

@@ -22,7 +22,7 @@ function varargout = mandelPlotter(varargin)
 
 % Edit the above text to modify the response to help mandelPlotter
 
-% Last Modified by GUIDE v2.5 06-Dec-2019 09:30:01
+% Last Modified by GUIDE v2.5 08-Dec-2019 23:06:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,6 +55,22 @@ function mandelPlotter_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for mandelPlotter
 handles.output = hObject;
 
+% Set default axis limits
+btnResetView_Callback(hObject, eventdata, handles);
+% Handle interactive axes
+hObject.WindowButtonMotionFcn = @interactiveAxis;
+hObject.WindowButtonDownFcn = @interactiveAxis;
+hObject.WindowButtonUpFcn = @interactiveAxis;
+hObject.WindowScrollWheelFcn = @interactiveAxis;
+% Store default position of axis objects, aslo add titles
+handles.origMandelPos = handles.axMandel.Position;
+handles.origJuliaPos = handles.axJulia.Position;
+title(handles.axMandel, 'Mandelbrot Set');
+title(handles.axJulia, 'Julia Set');
+% Pre-create a field for Julia and Mandelbrot image objects
+handles.mandelImg = 0;
+handles.juliaImg = 0;
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -74,18 +90,20 @@ varargout{1} = handles.output;
 
 
 
-function txtBoxPower_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxPower (see GCBO)
+function zPower_Callback(hObject, eventdata, handles)
+% hObject    handle to zPower (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxPower as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxPower as a double
-
+% Hints: get(hObject,'String') returns contents of zPower as text
+%        str2double(get(hObject,'String')) returns contents of zPower as a double
+updateTextBox(hObject, 1, Inf, @(p)deal(str2double(p),...
+    str2double(p) == floor(str2double(p))));
+updateAlgoSettings(0, handles);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxPower_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxPower (see GCBO)
+function zPower_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to zPower (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -97,18 +115,18 @@ end
 
 
 
-function txtBoxEsc_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxEsc (see GCBO)
+function escVal_Callback(hObject, eventdata, handles)
+% hObject    handle to escVal (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxEsc as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxEsc as a double
-
+% Hints: get(hObject,'String') returns contents of escVal as text
+%        str2double(get(hObject,'String')) returns contents of escVal as a double
+updateTextBox(hObject, 0, Inf);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxEsc_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxEsc (see GCBO)
+function escVal_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to escVal (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -143,18 +161,19 @@ end
 
 
 
-function txtBoxItCnt_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxItCnt (see GCBO)
+function itCnt_Callback(hObject, eventdata, handles)
+% hObject    handle to itCnt (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxItCnt as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxItCnt as a double
-
+% Hints: get(hObject,'String') returns contents of itCnt as text
+%        str2double(get(hObject,'String')) returns contents of itCnt as a double
+updateTextBox(hObject, 1, Inf, @(it)deal(str2double(it),...
+    str2double(it) == floor(str2double(it))));
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxItCnt_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxItCnt (see GCBO)
+function itCnt_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to itCnt (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -166,18 +185,19 @@ end
 
 
 
-function txtBoxPoly_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxPoly (see GCBO)
+function customPoly_Callback(hObject, eventdata, handles)
+% hObject    handle to customPoly (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxPoly as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxPoly as a double
-
+% Hints: get(hObject,'String') returns contents of customPoly as text
+%        str2double(get(hObject,'String')) returns contents of customPoly as a double
+updateTextBox(hObject, -Inf, Inf, @parsePolynomial);
+updateAlgoSettings(1, handles);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxPoly_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxPoly (see GCBO)
+function customPoly_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to customPoly (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -196,18 +216,18 @@ function mainMenu_Callback(hObject, eventdata, handles)
 
 
 
-function txtBoxCurrAlg_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxCurrAlg (see GCBO)
+function currAlgo_Callback(hObject, eventdata, handles)
+% hObject    handle to currAlgo (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxCurrAlg as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxCurrAlg as a double
+% Hints: get(hObject,'String') returns contents of currAlgo as text
+%        str2double(get(hObject,'String')) returns contents of currAlgo as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxCurrAlg_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxCurrAlg (see GCBO)
+function currAlgo_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to currAlgo (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -218,19 +238,19 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on selection change in dropDownAlgo.
-function dropDownAlgo_Callback(hObject, eventdata, handles)
-% hObject    handle to dropDownAlgo (see GCBO)
+% --- Executes on selection change in algoType.
+function algoType_Callback(hObject, eventdata, handles)
+% hObject    handle to algoType (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns dropDownAlgo contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from dropDownAlgo
-
+% Hints: contents = cellstr(get(hObject,'String')) returns algoType contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from algoType
+updateAlgoSettings(0, handles);
 
 % --- Executes during object creation, after setting all properties.
-function dropDownAlgo_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to dropDownAlgo (see GCBO)
+function algoType_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to algoType (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -241,13 +261,13 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in cbBulbCheck.
-function cbBulbCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to cbBulbCheck (see GCBO)
+% --- Executes on button press in bulbCheck.
+function bulbCheck_Callback(hObject, eventdata, handles)
+% hObject    handle to bulbCheck (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of cbBulbCheck
+% Hint: get(hObject,'Value') returns toggle state of bulbCheck
 
 
 % --- Executes on button press in checkbox3.
@@ -264,33 +284,97 @@ function btnRender_Callback(hObject, eventdata, handles)
 % hObject    handle to btnRender (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+resSettings = [handles.resX.Value, handles.resY.Value];
+descToAlgo = containers.Map(...
+{'SC optimized', 'SC any power', 'SC any poly', 'RR optimized', 'RR any power'}, ...
+{'EscapeValue2', 'EscapeValue', 'EscapeValuePoly', 'QuadtreeFill2', 'QuadtreeFill'});
+
+% Mandelbrot render
+if strcmp(handles.axMandel.Visible, 'on')
+    mSpace = [handles.axMandel.XLim handles.axMandel.YLim];
+    pxPos = getpixelposition(handles.axMandel);
+    res = resSettings;
+    for i=1:2
+        if res(i) == -1; res(i) = pxPos(2+i); end
+    end
+    tic();
+    itData = mandelbrot(handles.itCnt.Value, res, mSpace, ...
+        'Algorithm', descToAlgo(handles.currAlgo.String), ...
+        'SmoothRadius', handles.colorRadius.Value, ...
+        'Poly', handles.customPoly.Value, ...
+        'BulbCheck', handles.bulbCheck.Value, ...
+        'Exponent', handles.zPower.Value, ...
+        'EscapeValue', handles.escVal.Value);
+    renderTime = num2str(toc()); 
+    title(handles.axMandel, ['Mandelbrot Set (t = ' renderTime ' )']);
+    if handles.mandelImg == 0
+        handles.mandelImg = imagesc(handles.axMandel, 'CData', itData,...
+            'XData', handles.axMandel.XLim, 'YData', handles.axMandel.YLim);
+        guidata(hObject, handles);
+    else
+        handles.mandelImg.CData = itData;
+        handles.mandelImg.XData = handles.axMandel.XLim;
+        handles.mandelImg.YData = handles.axMandel.YLim;
+    end
+end
+% Julia render
+if strcmp(handles.axJulia.Visible, 'on')
+    mSpace = [handles.axJulia.XLim handles.axJulia.YLim];
+    pxPos = getpixelposition(handles.axJulia);
+    res = resSettings;
+    for i=1:2
+        if res(i) == -1; res(i) = pxPos(2+i); end
+    end
+    juliaAlgo = ['SC ' handles.currAlgo.String(4:end)];
+    juliaPt = handles.juliaRe.Value + 1i*handles.juliaIm.Value;
+    tic();
+    itData = julia(juliaPt, handles.itCnt.Value, res, mSpace, ...
+        'Algorithm', descToAlgo(juliaAlgo), ...
+        'SmoothRadius', handles.colorRadius.Value, ...
+        'Poly', handles.customPoly.Value, ...
+        'Exponent', handles.zPower.Value, ...
+        'EscapeValue', handles.escVal.Value);
+    renderTime = num2str(toc()); 
+    title(handles.axJulia, ['Julia Set (t = ' renderTime ' )']);
+    if handles.juliaImg == 0
+        handles.juliaImg = imagesc(handles.axJulia, 'CData', itData,...
+            'XData', handles.axJulia.XLim, 'YData', handles.axJulia.YLim);
+        guidata(hObject, handles);
+    else
+        handles.juliaImg.CData = itData;
+        handles.juliaImg.XData = handles.axJulia.XLim;
+        handles.juliaImg.YData = handles.axJulia.YLim;
+    end
+end
+
+%drawnow();
 
 
-% --- Executes on button press in cbRenderMendel.
-function cbRenderMendel_Callback(hObject, eventdata, handles)
-% hObject    handle to cbRenderMendel (see GCBO)
+% --- Executes on button press in renderMandel.
+function renderMandel_Callback(hObject, eventdata, handles)
+% hObject    handle to renderMandel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of cbRenderMendel
+% Hint: get(hObject,'Value') returns toggle state of renderMandel
+resizeAxes(handles);
 
-
-% --- Executes on button press in cbRenderJulia.
-function cbRenderJulia_Callback(hObject, eventdata, handles)
-% hObject    handle to cbRenderJulia (see GCBO)
+% --- Executes on button press in renderJulia.
+function renderJulia_Callback(hObject, eventdata, handles)
+% hObject    handle to renderJulia (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of cbRenderJulia
+% Hint: get(hObject,'Value') returns toggle state of renderJulia
+resizeAxes(handles);
 
-
-% --- Executes on button press in cbAutoRender.
-function cbAutoRender_Callback(hObject, eventdata, handles)
-% hObject    handle to cbAutoRender (see GCBO)
+% --- Executes on button press in autoRender.
+function autoRender_Callback(hObject, eventdata, handles)
+% hObject    handle to autoRender (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of cbAutoRender
+% Hint: get(hObject,'Value') returns toggle state of autoRender
 
 
 % --- Executes on button press in btnScreencap.
@@ -301,18 +385,18 @@ function btnScreencap_Callback(hObject, eventdata, handles)
 
 
 
-function txtBoxJuliaCy_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxJuliaCy (see GCBO)
+function juliaCy_Callback(hObject, eventdata, handles)
+% hObject    handle to juliaCy (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxJuliaCy as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxJuliaCy as a double
-
+% Hints: get(hObject,'String') returns contents of juliaCy as text
+%        str2double(get(hObject,'String')) returns contents of juliaCy as a double
+updateTextBox(hObject, -Inf, Inf);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxJuliaCy_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxJuliaCy (see GCBO)
+function juliaCy_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to juliaCy (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -324,18 +408,18 @@ end
 
 
 
-function txtBoxJuliaCx_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxJuliaCx (see GCBO)
+function juliaCx_Callback(hObject, eventdata, handles)
+% hObject    handle to juliaCx (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxJuliaCx as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxJuliaCx as a double
-
+% Hints: get(hObject,'String') returns contents of juliaCx as text
+%        str2double(get(hObject,'String')) returns contents of juliaCx as a double
+updateTextBox(hObject, -Inf, Inf);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxJuliaCx_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxJuliaCx (see GCBO)
+function juliaCx_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to juliaCx (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -347,18 +431,20 @@ end
 
 
 
-function txtBoxJuliaZoom_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxJuliaZoom (see GCBO)
+function juliaZoom_Callback(hObject, eventdata, handles)
+% hObject    handle to juliaZoom (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxJuliaZoom as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxJuliaZoom as a double
-
+% Hints: get(hObject,'String') returns contents of juliaZoom as text
+%        str2double(get(hObject,'String')) returns contents of juliaZoom as a double
+updateTextBox(hObject, 0.001, Inf);
+calculateAxis(handles.axJulia, handles.juliaCx.Value, ...
+    handles.juliaCy.Value, handles.juliaZoom.Value);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxJuliaZoom_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxJuliaZoom (see GCBO)
+function juliaZoom_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to juliaZoom (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -370,18 +456,20 @@ end
 
 
 
-function txtBoxJuliaRe_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxJuliaRe (see GCBO)
+function juliaRe_Callback(hObject, eventdata, handles)
+% hObject    handle to juliaRe (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxJuliaRe as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxJuliaRe as a double
-
+% Hints: get(hObject,'String') returns contents of juliaRe as text
+%        str2double(get(hObject,'String')) returns contents of juliaRe as a double
+updateTextBox(hObject, -Inf, Inf);
+calculateAxis(handles.axJulia, handles.juliaCx.Value, ...
+    handles.juliaCy.Value, handles.juliaZoom.Value);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxJuliaRe_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxJuliaRe (see GCBO)
+function juliaRe_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to juliaRe (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -393,18 +481,20 @@ end
 
 
 
-function txtBoxJuliaIm_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxJuliaIm (see GCBO)
+function juliaIm_Callback(hObject, eventdata, handles)
+% hObject    handle to juliaIm (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxJuliaIm as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxJuliaIm as a double
-
+% Hints: get(hObject,'String') returns contents of juliaIm as text
+%        str2double(get(hObject,'String')) returns contents of juliaIm as a double
+updateTextBox(hObject, -Inf, Inf);
+calculateAxis(handles.axJulia, handles.juliaCx.Value, ...
+    handles.juliaCy.Value, handles.juliaZoom.Value);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxJuliaIm_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxJuliaIm (see GCBO)
+function juliaIm_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to juliaIm (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -416,18 +506,28 @@ end
 
 
 
-function txtBoxResX_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxResX (see GCBO)
+function resX_Callback(hObject, eventdata, handles)
+% hObject    handle to resX (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxResX as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxResX as a double
+% Hints: get(hObject,'String') returns contents of resX as text
+%        str2double(get(hObject,'String')) returns contents of resX as a double
+updateTextBox(hObject, 0,0, @checkRes, 1);
+
+function [c,v] = checkRes(r)
+if strcmp(r,'max')
+    c = -1;
+    v = 1;
+else
+    c = str2double(r);
+    v = ~isnan(c) && c == floor(c) && c >= 1;
+end
 
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxResX_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxResX (see GCBO)
+function resX_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to resX (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -439,18 +539,18 @@ end
 
 
 
-function txtBoxResY_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxResY (see GCBO)
+function resY_Callback(hObject, eventdata, handles)
+% hObject    handle to resY (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxResY as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxResY as a double
-
+% Hints: get(hObject,'String') returns contents of resY as text
+%        str2double(get(hObject,'String')) returns contents of resY as a double
+updateTextBox(hObject, 1, Inf, @checkRes);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxResY_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxResY (see GCBO)
+function resY_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to resY (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -461,37 +561,37 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in checkbox9.
-function checkbox9_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox9 (see GCBO)
+% --- Executes on button press in dynamicZoom.
+function dynamicZoom_Callback(hObject, eventdata, handles)
+% hObject    handle to dynamicZoom (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of checkbox9
+% Hint: get(hObject,'Value') returns toggle state of dynamicZoom
 
 
-% --- Executes on button press in checkbox10.
-function checkbox10_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox10 (see GCBO)
+% --- Executes on button press in quickJulia.
+function quickJulia_Callback(hObject, eventdata, handles)
+% hObject    handle to quickJulia (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of checkbox10
+% Hint: get(hObject,'Value') returns toggle state of quickJulia
 
 
-% --- Executes on selection change in dropDownCmap.
-function dropDownCmap_Callback(hObject, eventdata, handles)
-% hObject    handle to dropDownCmap (see GCBO)
+% --- Executes on selection change in cMap.
+function cMap_Callback(hObject, eventdata, handles)
+% hObject    handle to cMap (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns dropDownCmap contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from dropDownCmap
+% Hints: contents = cellstr(get(hObject,'String')) returns cMap contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from cMap
 
 
 % --- Executes during object creation, after setting all properties.
-function dropDownCmap_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to dropDownCmap (see GCBO)
+function cMap_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to cMap (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -502,19 +602,19 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on selection change in dropDownColor.
-function dropDownColor_Callback(hObject, eventdata, handles)
-% hObject    handle to dropDownColor (see GCBO)
+% --- Executes on selection change in colorMethod.
+function colorMethod_Callback(hObject, eventdata, handles)
+% hObject    handle to colorMethod (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns dropDownColor contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from dropDownColor
+% Hints: contents = cellstr(get(hObject,'String')) returns colorMethod contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from colorMethod
 
 
 % --- Executes during object creation, after setting all properties.
-function dropDownColor_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to dropDownColor (see GCBO)
+function colorMethod_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to colorMethod (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -526,18 +626,18 @@ end
 
 
 
-function txtBoxCMult_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxCMult (see GCBO)
+function colorMult_Callback(hObject, eventdata, handles)
+% hObject    handle to colorMult (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxCMult as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxCMult as a double
-
+% Hints: get(hObject,'String') returns contents of colorMult as text
+%        str2double(get(hObject,'String')) returns contents of colorMult as a double
+updateTextBox(hObject, 0.1, Inf);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxCMult_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxCMult (see GCBO)
+function colorMult_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to colorMult (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -549,18 +649,18 @@ end
 
 
 
-function txtBoxSmoothR_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxSmoothR (see GCBO)
+function colorRadius_Callback(hObject, eventdata, handles)
+% hObject    handle to colorRadius (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxSmoothR as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxSmoothR as a double
-
+% Hints: get(hObject,'String') returns contents of colorRadius as text
+%        str2double(get(hObject,'String')) returns contents of colorRadius as a double
+updateTextBox(hObject, 2, Inf);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxSmoothR_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxSmoothR (see GCBO)
+function colorRadius_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to colorRadius (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -572,18 +672,20 @@ end
 
 
 
-function txtBoxMandelZ_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxMandelZ (see GCBO)
+function mandelZoom_Callback(hObject, eventdata, handles)
+% hObject    handle to mandelZoom (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxMandelZ as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxMandelZ as a double
-
+% Hints: get(hObject,'String') returns contents of mandelZoom as text
+%        str2double(get(hObject,'String')) returns contents of mandelZoom as a double
+updateTextBox(hObject, 0.001, Inf);
+calculateAxis(handles.axMandel, handles.mandelCx.Value, ...
+    handles.mandelCy.Value, handles.mandelZoom.Value);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxMandelZ_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxMandelZ (see GCBO)
+function mandelZoom_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to mandelZoom (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -595,18 +697,20 @@ end
 
 
 
-function txtBoxMandelCx_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxMandelCx (see GCBO)
+function mandelCx_Callback(hObject, eventdata, handles)
+% hObject    handle to mandelCx (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxMandelCx as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxMandelCx as a double
-
+% Hints: get(hObject,'String') returns contents of mandelCx as text
+%        str2double(get(hObject,'String')) returns contents of mandelCx as a double
+updateTextBox(hObject, -Inf, Inf);
+calculateAxis(handles.axMandel, handles.mandelCx.Value, ...
+    handles.mandelCy.Value, handles.mandelZoom.Value);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxMandelCx_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxMandelCx (see GCBO)
+function mandelCx_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to mandelCx (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -618,18 +722,20 @@ end
 
 
 
-function txtBoxMandelCy_Callback(hObject, eventdata, handles)
-% hObject    handle to txtBoxMandelCy (see GCBO)
+function mandelCy_Callback(hObject, eventdata, handles)
+% hObject    handle to mandelCy (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of txtBoxMandelCy as text
-%        str2double(get(hObject,'String')) returns contents of txtBoxMandelCy as a double
-
+% Hints: get(hObject,'String') returns contents of mandelCy as text
+%        str2double(get(hObject,'String')) returns contents of mandelCy as a double
+updateTextBox(hObject, -Inf, Inf);
+calculateAxis(handles.axMandel, handles.mandelCx.Value, ...
+    handles.mandelCy.Value, handles.mandelZoom.Value);
 
 % --- Executes during object creation, after setting all properties.
-function txtBoxMandelCy_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtBoxMandelCy (see GCBO)
+function mandelCy_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to mandelCy (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -640,13 +746,13 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in cbAxes.
-function cbAxes_Callback(hObject, eventdata, handles)
-% hObject    handle to cbAxes (see GCBO)
+% --- Executes on button press in showAxes.
+function showAxes_Callback(hObject, eventdata, handles)
+% hObject    handle to showAxes (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of cbAxes
+% Hint: get(hObject,'Value') returns toggle state of showAxes
 
 
 % --- Executes on button press in btnResetView.
@@ -654,7 +760,17 @@ function btnResetView_Callback(hObject, eventdata, handles)
 % hObject    handle to btnResetView (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+tbToReset = {handles.mandelCx, handles.mandelCy, handles.mandelZoom
+             handles.juliaCx,  handles.juliaCy,  handles.juliaZoom};
+for i=1:numel(tbToReset)
+    tb = tbToReset{i};
+    setSmartTb(tb, tb.UserData{3}, tb.UserData{2});
+end
 
+calculateAxis(handles.axMandel,handles.mandelCx.Value,...
+    handles.mandelCy.Value,handles.mandelZoom.Value);
+calculateAxis(handles.axJulia,handles.juliaCx.Value,...
+    handles.juliaCy.Value,handles.juliaZoom.Value);
 
 % --- Executes on button press in btnHelp.
 function btnHelp_Callback(hObject, eventdata, handles)
@@ -668,3 +784,113 @@ function btnResetAll_Callback(hObject, eventdata, handles)
 % hObject    handle to btnResetAll (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+elems = struct2cell(handles);
+for i=1:numel(elems)
+    child = elems{i};
+    if ~isequal(size(child), [1 1])
+        continue; 
+    end
+    if isgraphics(child,'uicontrol') && strcmp(child.Enable, 'on')
+        switch child.Style
+            case 'edit'
+                setSmartTb(child, child.UserData{3}, child.UserData{2});
+            case 'checkbox'
+                child.Value = child.UserData;
+            case 'popupmenu'
+                child.Value = 1;
+        end
+    end
+end
+calculateAxis(handles.axMandel,handles.mandelCx.Value,...
+    handles.mandelCy.Value,handles.mandelZoom.Value);
+calculateAxis(handles.axJulia,handles.juliaCx.Value,...
+    handles.juliaCy.Value,handles.juliaZoom.Value);
+
+
+% Set the value of a smart textbox
+function setSmartTb(tb, value, valueStr)
+    if nargin < 3
+        valueStr = num2str(value); 
+    end
+    tb.Value = value;
+    tb.String = valueStr;
+    tb.UserData{1} = tb.String;
+
+function updateAlgoSettings(forcePoly, handles)
+% Polynomial is not of the "one power" form with degree larger than 0
+if forcePoly
+    if nnz(handles.customPoly.Value) ~= 1 ...
+            || handles.customPoly.Value(end) ~= 1 ...
+            || handles.customPoly.Value(1) ~= 0
+        handles.currAlgo.String = 'SC any poly';
+        handles.algoType.Value = 1;
+        setSmartTb(handles.zPower, length(handles.customPoly.Value)-1);
+        if handles.autoRender.Value
+            btnRender_Callback(0, 0, handles);
+        end
+        return
+    end
+    setSmartTb(handles.zPower, length(handles.customPoly.Value)-1);
+end
+% Reset polynomial field
+handles.customPoly.String = ['z^' handles.zPower.String];
+updateTextBox(handles.customPoly, -Inf, Inf, @parsePolynomial);
+% Choose algorithm tpye
+algoType = {'SC ', 'RR '};
+handles.currAlgo.String = algoType{handles.algoType.Value};
+% Choose algorithm implementation
+if handles.zPower.Value == 2
+    handles.currAlgo.String = [handles.currAlgo.String 'optimized'];
+else
+    handles.currAlgo.String = [handles.currAlgo.String 'any power'];
+end
+
+if handles.autoRender.Value
+    btnRender_Callback(0, 0, handles);
+end
+
+function resizeAxes(handles)
+if handles.renderMandel.Value && handles.renderJulia.Value
+    handles.renderMandel.Enable = 'on';
+    handles.renderJulia.Enable = 'on';
+    
+    handles.axMandel.Position = handles.origMandelPos;
+    handles.axJulia.Position = handles.origJuliaPos;
+    
+    handles.axMandel.Visible = 1;
+    handles.axJulia.Visible = 1;
+elseif handles.renderMandel.Value
+    handles.renderMandel.Enable = 'off';
+    
+    w = sum(handles.origJuliaPos([1,3])) - handles.origMandelPos(1);
+    h = sum(handles.origJuliaPos([2,4])) - handles.origMandelPos(2);
+    handles.axMandel.Position = [handles.origMandelPos(1:2) w h];
+    
+    handles.axMandel.Visible = 1;
+    handles.axJulia.Visible = 0;
+elseif handles.renderJulia.Value
+    handles.renderJulia.Enable = 'off';
+    
+    w = sum(handles.origJuliaPos([1,3])) - handles.origMandelPos(1);
+    h = sum(handles.origJuliaPos([2,4])) - handles.origMandelPos(2);
+    handles.axJulia.Position = [handles.origMandelPos(1:2) w h];
+    
+    handles.axMandel.Visible = 0;
+    handles.axJulia.Visible = 1;
+end
+calculateAxis(handles.axMandel, handles.mandelCx.Value, ...
+    handles.mandelCy.Value, handles.mandelZoom.Value);
+calculateAxis(handles.axJulia, handles.juliaCx.Value, ...
+    handles.juliaCy.Value, handles.juliaZoom.Value);
+
+
+% --- Executes on mouse press over axes background.
+function axMandel_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to axMandel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if handles.quickJulia.Value && eventdata.Button == 3
+    cpt = hObject.CurrentPoint(1,1:2);
+    setSmartTb(handles.juliaRe, cpt(1));
+    setSmartTb(handles.juliaIm, cpt(2));
+end
