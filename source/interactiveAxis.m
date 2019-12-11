@@ -1,16 +1,17 @@
-function interactiveAxis(src, evt)
+function interactiveAxis(src, evt, handles)
     % Check if dynamic zoom is disabled
-    zoomCB = findobj('Tag', 'dynamicZoom');
+    zoomCB = handles.dynamicZoom;
     if ~zoomCB.Value
         return; 
     end
     % Perform interactive axis events for each axis object
-    for axStr={'Mandel', 'Julia'}
+    axPrefix = {'Mandel', 'Julia'};
+    for i=1:2
         % Get handles for the relevant parts
-        ax      = findobj('Tag', ['ax' axStr{1}]);
-        cxTB    = findobj('Tag', [lower(axStr{1}) 'Cx']);
-        cyTB    = findobj('Tag', [lower(axStr{1}) 'Cy']);
-        zoomTB  = findobj('Tag', [lower(axStr{1}) 'Zoom']);
+        ax      = handles.(['ax' axPrefix{i}]);
+        cxTB    = handles.([lower(axPrefix{i}) 'Cx']);
+        cyTB    = handles.([lower(axPrefix{i}) 'Cy']);
+        zoomTB  = handles.([lower(axPrefix{i}) 'Zoom']);
         % Skip axis if turned off
         if ~ax.Visible
             continue;
@@ -42,11 +43,18 @@ function interactiveAxis(src, evt)
                 cyTB.UserData{1} = cyTB.String;
                 % Move axis accordingly
                 calculateAxis(ax, nC(1), nC(2), zoomTB.Value);
+                if handles.autoRender.Value
+                    handles.renderSub(i == 1, i == 2, handles); 
+                end
             end
         % Scrolling mouse
         elseif strcmp(evt.EventName, 'WindowScrollWheel') && inBounds
             % Compute new zoom value and center
             zF = -evt.VerticalScrollCount;
+            % Block zooming if already to high
+            if zoomTB.Value > 1e13 && zF > 0
+                return; 
+            end
             nZ = zoomTB.Value * 1.100^zF;
             nC = 1.100^(-zF)*([cxTB.Value, cyTB.Value] - cpt) + cpt;
             % Update text boxes
@@ -61,6 +69,9 @@ function interactiveAxis(src, evt)
             zoomTB.UserData{1} = zoomTB.String;
             % Recalculate axis
             calculateAxis(ax, nC(1), nC(2), nZ);
+            if handles.autoRender.Value
+                handles.renderSub(i == 1, i == 2, handles); 
+            end
         end
     end
 end

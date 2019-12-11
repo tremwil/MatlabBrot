@@ -8,7 +8,7 @@
 % switching to another UI element will reset the value to the last correct
 % one.
 
-function updateTextBox(src, min, max, func, ignore)
+function valid = updateTextBox(src, min, max, func, ignore)
     if nargin > 3
         [vNext, valid] = func(src.String); % Parse input with function
     else
@@ -23,7 +23,7 @@ function updateTextBox(src, min, max, func, ignore)
     disp(int32(vk));
     if valid % Input valid, save value
         src.BackgroundColor = [1.0 1.0 1.0];    % Normal background
-        src.UserData{1} = src.String;              % Update last good input
+        src.UserData{1} = src.String;           % Update last good input
         src.Value = vNext;                      % Update value
     elseif vk == 13 % User pressed Enter + invalid, soft reset
         src.BackgroundColor = [1.0 0.32 0.32]; % Redish background

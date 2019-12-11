@@ -141,8 +141,9 @@ end
 % the set itself can be reduced to a point without intersecting another
 % section, so if one can find a rectangle whose boundary is uniform in the
 % number of iterations, the inside region can be filled without iterating
-% it. This gives a significant performance improvement, since a large
-% number of points can be skipped.
+% it. This gives a significant performance improvement for images where the
+% resolution/iterations ratio is high, since a large number of points can
+% be skipped.
 function [itMat] = algo_quadtree(N, mGrid, kw)
     esc2 = kw('escapevalue')^2;     % Compute square escape value
     ex = kw('exponent');            % Exponent
@@ -208,7 +209,9 @@ end
 
 % Quadtree-based algorithm exploiting the simply connected property of the
 % Mandelbrot set and it's lemniscates. Optimized for the power = 2 case.
-% The fastest Mandelbrot algorithm.
+% The fastest Mandelbrot algorithm for high resolution. When the number of
+% iterations is high w.r.t the resolution, the smooth color algorithm is
+% slightly faster. 
 function [itMat] = algo_quadtree2(N, mGrid, kw)
     esc2 = kw('escapevalue')^2;     % Compute square escape value
     bc = kw('bulbcheck');           % Bulb check on/off
