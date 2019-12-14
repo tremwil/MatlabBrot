@@ -1,14 +1,20 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% parsePolynomial.m        %
+% AUTHOR: William Tremblay %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Parse polynomial string into coefficients.
-% Only allows one variable.
+% Only allows univariate polynomials.
+% Coefs stored in double vector in increasing order of powers.
 function [coefs, valid] = parsePolynomial(str)
-    % Remove spaces in the string and add leading sign if not present
-    str = strrep(str, ' ', '');
+    % Trim the string and add leading sign if not present
+    str = strtrim(str);
     if ~isempty(str) && ~(str(1) == '+' || str(1) == '-')
          str = ['+' str];
     end
     % Match RegExp corresponding to a monomial expression
-    expr = ['(?<coef>(+-|[+-])[0-9]*(?:\.\d+)?)',...    % Sign+Coef. 
-            '\*?(?<var>[a-z](?:\^[0-9]+)?)?'];          % Var + Exp.
+    expr = ['(?<coef>(?:\+-|[+-])\s*[0-9]*(?:\.\d+)?)',... % Sign + Coef
+            '\s*(?<var>[a-zA-Z]\s*(?:\^\s*[0-9]+)?)?'];    % Var + Exp
     % Check if full string is matched
     matches = regexp(str, expr, 'match');
     if ~isequal(strjoin(matches,''), str)
@@ -23,8 +29,8 @@ function [coefs, valid] = parsePolynomial(str)
     var = '';                       % Variable
     % Parse tokens into the coef. and exp. matrices
     for i=1:length(tokens)
-        coef = tokens(i).coef;
-        cvar = tokens(i).var;
+        coef = strrep(tokens(i).coef, ' ', ''); % Remove any spaces
+        cvar = strrep(tokens(i).var, ' ', '');  % Remove any spaces
         % Handle +- signs like in x^3 + -2x^2 by removing the +
         if length(coef) >= 2 && strcmp(coef(1:2), '+-')
             coef = coef(2:end);

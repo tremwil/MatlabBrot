@@ -1,3 +1,8 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% mandelPlotter.m          %
+% AUTHOR: William Tremblay %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function varargout = mandelPlotter(varargin)
 % MANDELPLOTTER MATLAB code for mandelPlotter.fig
 %      MANDELPLOTTER, by itself, creates a new MANDELPLOTTER or raises the existing
@@ -54,7 +59,6 @@ function mandelPlotter_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for mandelPlotter
 handles.output = hObject;
-
 % Set default axis limits
 btnResetView_Callback(hObject, eventdata, handles);
 % Store default position of axis objects, aslo add titles
@@ -68,11 +72,11 @@ handles.juliaImg = 0;
 % Assign renderSub function to handles so it can be called from
 % outside of this file
 handles.renderSub = @renderSub;
-% Init images that will display the sets
+% Init images that will display the sets very off screeen
 handles.mandelImg = image(handles.axMandel, 'CData', 0,...
-    'XData', handles.axMandel.XLim, 'YData', handles.axMandel.YLim);
+    'XData', [1e10 1e10+1], 'YData', [1e10 1e10+1]);
 handles.juliaImg = image(handles.axJulia, 'CData', 0,...
-    'XData', handles.axJulia.XLim, 'YData', handles.axJulia.YLim);
+    'XData', [1e10 1e10+1], 'YData', [1e10 1e10+1]);
 % Store the iteration data inside the UserData of the images
 handles.mandelImg.UserData = [];
 handles.juliaImg.UserData = [];
@@ -90,9 +94,20 @@ addlistener(handles.colorBias,'Value','PreSet',...
     @(src,evt) recomputeCmap(handles));
 % Create initial colormap data
 recomputeCmap(handles);
-
 % Update handles structure
 guidata(hObject, handles);
+% Fix multiline tooltips
+elems = struct2cell(handles);
+for i=1:numel(elems)
+    child = elems{i};
+    if ~isequal(size(child), [1 1])
+        continue; % Child is not a UI element
+    end
+    if isprop(child, 'Tooltip') && iscell(child.Tooltip)
+        % Join tooltip strings into one with line breaks
+        child.TooltipString = strjoin(child.Tooltip, '\n');
+    end
+end
 
 % UIWAIT makes mandelPlotter wait for user response (see UIRESUME)
 % uiwait(handles.mainWindow);
@@ -111,12 +126,7 @@ varargout{1} = handles.output;
 
 
 function zPower_Callback(hObject, eventdata, handles)
-% hObject    handle to zPower (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of zPower as text
-%        str2double(get(hObject,'String')) returns contents of zPower as a double
+% Update text box with a custom check for a positive integer
 if updateTextBox(hObject, 1, Inf, @(p)deal(str2double(p),...
         str2double(p) == floor(str2double(p))))
     updateAlgoSettings(0, handles);
@@ -137,12 +147,7 @@ end
 
 
 function escVal_Callback(hObject, eventdata, handles)
-% hObject    handle to escVal (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of escVal as text
-%        str2double(get(hObject,'String')) returns contents of escVal as a double
+% Update text box with a custom check for a positive integer
 updateTextBox(hObject, 0, Inf);
 if handles.autoRender.Value
     renderSub(1, 1, handles);
@@ -162,17 +167,12 @@ end
 
 
 function itCnt_Callback(hObject, eventdata, handles)
-% hObject    handle to itCnt (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of itCnt as text
-%        str2double(get(hObject,'String')) returns contents of itCnt as a double
+% Update text box with a custom check for a positive integer
 updateTextBox(hObject, 1, Inf, @(it)deal(str2double(it),...
     str2double(it) == floor(str2double(it))));
-
+% Check if auto should be disabled automatically
 checkAutoRender(handles);
-
+% If no, perform the render
 if handles.autoRender.Value
     renderSub(1, 1, handles);
 end
@@ -192,12 +192,7 @@ end
 
 
 function customPoly_Callback(hObject, eventdata, handles)
-% hObject    handle to customPoly (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of customPoly as text
-%        str2double(get(hObject,'String')) returns contents of customPoly as a double
+% Update text box with a custom check for a polynomial
 if updateTextBox(hObject, -Inf, Inf, @parsePolynomial)
     updateAlgoSettings(1, handles);
 end
@@ -216,12 +211,7 @@ end
 
 
 function currAlgo_Callback(hObject, eventdata, handles)
-% hObject    handle to currAlgo (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of currAlgo as text
-%        str2double(get(hObject,'String')) returns contents of currAlgo as a double
+% Force re-render if autorender on
 if handles.autoRender.Value
     renderSub(1, 1, handles);
 end
@@ -241,12 +231,7 @@ end
 
 % --- Executes on selection change in algoType.
 function algoType_Callback(hObject, eventdata, handles)
-% hObject    handle to algoType (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns algoType contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from algoType
+% Update algorithm settings
 updateAlgoSettings(0, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -264,86 +249,59 @@ end
 
 % --- Executes on button press in bulbCheck.
 function bulbCheck_Callback(hObject, eventdata, handles)
-% hObject    handle to bulbCheck (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of bulbCheck
+% Re-render if autorender on
 if handles.autoRender.Value
     renderSub(1, 1, handles);
 end
 
 % --- Executes on button press in btnRender.
 function btnRender_Callback(hObject, eventdata, handles)
-% hObject    handle to btnRender (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% Render upton clicking render button
 renderSub(1, 1, handles);
 
 % --- Executes on button press in renderMandel.
 function renderMandel_Callback(hObject, eventdata, handles)
-% hObject    handle to renderMandel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of renderMandel
+% Resize axes and re-render automatically if needed
 resizeAxes(handles);
-if handles.autoRender.Value
-    renderSub(1, 1, handles)
-end
 
 % --- Executes on button press in renderJulia.
 function renderJulia_Callback(hObject, eventdata, handles)
-% hObject    handle to renderJulia (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of renderJulia
+% Resize axes and re-render automatically if needed
 resizeAxes(handles);
-if handles.autoRender.Value
-    renderSub(1, 1, handles) 
-end
 
 % --- Executes on button press in autoRender.
 function autoRender_Callback(hObject, eventdata, handles)
-% hObject    handle to autoRender (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of autoRender
+% If autoRender turned on, render
 if hObject.Value
     renderSub(1, 1, handles) 
 end
 
 % --- Executes on button press in btnScreencap.
 function btnScreencap_Callback(hObject, eventdata, handles)
-% hObject    handle to btnScreencap (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% Check if Mandelbrot set is being rendered
 if handles.renderMandel.Value
+    % Query user save path
     [file,path] = uiputfile('*.png','Save Mandelbrot Set', 'mandelbrot.png');
-    if file
+    if file % If gave a valid path, save image color data with imwrite
         imwrite(handles.mandelImg.CData, [path file]); 
     end
 end
+% Check if Julia set is being rendered
 if handles.renderJulia.Value
+    % Query user save path
     [file,path] = uiputfile('*.png','Save Julia Set', 'julia.png');
-    if file
+    if file % If gave a valid path, save image color data with imwrite
         imwrite(handles.juliaImg.CData, [path file]); 
     end
 end
 
-
 function juliaCy_Callback(hObject, eventdata, handles)
-% hObject    handle to juliaCy (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of juliaCy as text
-%        str2double(get(hObject,'String')) returns contents of juliaCy as a double
-updateTextBox(hObject, -Inf, Inf);
-if handles.autoRender.Value
-    renderSub(0, 1, handles)
+% Update text box
+% Recalculate axis
+calculateAxis(handles.axJulia, handles.juliaCx.Value, ...
+    handles.juliaCy.Value, handles.juliaZoom.Value);
+if handles.autoRender.Value % auto render if enabled
+    renderSub(0, 1, handles);  
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -358,18 +316,14 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function juliaCx_Callback(hObject, eventdata, handles)
-% hObject    handle to juliaCx (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of juliaCx as text
-%        str2double(get(hObject,'String')) returns contents of juliaCx as a double
+% Update text box
 updateTextBox(hObject, -Inf, Inf);
-if handles.autoRender.Value
-    renderSub(0, 1, handles)
+% Recalculate axis
+calculateAxis(handles.axJulia, handles.juliaCx.Value, ...
+    handles.juliaCy.Value, handles.juliaZoom.Value);
+if handles.autoRender.Value % auto render if enabled
+    renderSub(0, 1, handles);  
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -384,21 +338,16 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function juliaZoom_Callback(hObject, eventdata, handles)
-% hObject    handle to juliaZoom (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of juliaZoom as text
-%        str2double(get(hObject,'String')) returns contents of juliaZoom as a double
+% Update text box
 updateTextBox(hObject, 0.001, 1e13);
+% Recalculate axis
 calculateAxis(handles.axJulia, handles.juliaCx.Value, ...
     handles.juliaCy.Value, handles.juliaZoom.Value);
-if handles.autoRender.Value
+if handles.autoRender.Value % auto render if enabled
     renderSub(0, 1, handles);  
 end
+
 % --- Executes during object creation, after setting all properties.
 function juliaZoom_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to juliaZoom (see GCBO)
@@ -411,18 +360,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function juliaRe_Callback(hObject, eventdata, handles)
-% hObject    handle to juliaRe (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of juliaRe as text
-%        str2double(get(hObject,'String')) returns contents of juliaRe as a double
+% Update text box and render if needed
 updateTextBox(hObject, -Inf, Inf);
-calculateAxis(handles.axJulia, handles.juliaCx.Value, ...
-    handles.juliaCy.Value, handles.juliaZoom.Value);
 if handles.autoRender.Value
     renderSub(0, 1, handles);  
 end
@@ -439,18 +379,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function juliaIm_Callback(hObject, eventdata, handles)
-% hObject    handle to juliaIm (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of juliaIm as text
-%        str2double(get(hObject,'String')) returns contents of juliaIm as a double
+% Update text box and render if needed
 updateTextBox(hObject, -Inf, Inf);
-calculateAxis(handles.axJulia, handles.juliaCx.Value, ...
-    handles.juliaCy.Value, handles.juliaZoom.Value);
 if handles.autoRender.Value
     renderSub(0, 1, handles);  
 end
@@ -467,34 +398,13 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function resX_Callback(hObject, eventdata, handles)
-% hObject    handle to resX (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of resX as text
-%        str2double(get(hObject,'String')) returns contents of resX as a double
+% Update text box with custom check and render if needed
 updateTextBox(hObject, 0,0, @checkRes, 1);
-checkAutoRender(handles);
+checkAutoRender(handles); % Disable auto-render if res to high
 if handles.autoRender.Value
     renderSub(1, 1, handles);  
 end
-
-function [c,v] = checkRes(r)
-r = deblank(r);
-if endsWith(r,'max')
-    c = -1;
-    if length(r) > 3
-        c = -str2double(deblank(r(1:end-3)));
-    end
-    v = ~isnan(c);
-else
-    c = str2double(r);
-    v = ~isnan(c) && c == floor(c) && c >= 1;
-end
-
 
 % --- Executes during object creation, after setting all properties.
 function resX_CreateFcn(hObject, eventdata, handles)
@@ -508,15 +418,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function resY_Callback(hObject, eventdata, handles)
-% hObject    handle to resY (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of resY as text
-%        str2double(get(hObject,'String')) returns contents of resY as a double
+% Update text box with custom check and render if needed
 updateTextBox(hObject, 0, 0, @checkRes, 1);
 checkAutoRender(handles);
 if handles.autoRender.Value
@@ -535,33 +438,18 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
 % --- Executes on button press in dynamicZoom.
 function dynamicZoom_Callback(hObject, eventdata, handles)
-% hObject    handle to dynamicZoom (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of dynamicZoom
+% Unused callback
 
 
 % --- Executes on button press in quickJulia.
 function quickJulia_Callback(hObject, eventdata, handles)
-% hObject    handle to quickJulia (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of quickJulia
-
+% Unused callback
 
 % --- Executes on selection change in cMap.
 function cMap_Callback(hObject, eventdata, handles)
-% hObject    handle to cMap (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns cMap contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from cMap
+% Recompute color map
 recomputeCmap(handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -576,15 +464,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
 % --- Executes on selection change in colorMethod.
 function colorMethod_Callback(hObject, eventdata, handles)
-% hObject    handle to colorMethod (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns colorMethod contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from colorMethod
+% Recompute color map
 recomputeCmap(handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -599,14 +481,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
 function colorMult_Callback(hObject, eventdata, handles)
-% hObject    handle to colorMult (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of colorMult as text
-%        str2double(get(hObject,'String')) returns contents of colorMult as a double
+% Update text box and recompute color map
 updateTextBox(hObject, 0.1, Inf);
 recomputeCmap(handles);
 
@@ -634,15 +510,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function mandelZoom_Callback(hObject, eventdata, handles)
-% hObject    handle to mandelZoom (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of mandelZoom as text
-%        str2double(get(hObject,'String')) returns contents of mandelZoom as a double
+% Update zoom TB, recalculate axis and autorender if enabled
 updateTextBox(hObject, 0.001, 1e13);
 calculateAxis(handles.axMandel, handles.mandelCx.Value, ...
     handles.mandelCy.Value, handles.mandelZoom.Value);
@@ -662,15 +531,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function mandelCx_Callback(hObject, eventdata, handles)
-% hObject    handle to mandelCx (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of mandelCx as text
-%        str2double(get(hObject,'String')) returns contents of mandelCx as a double
+% Update Cx TB, recalculate axis and autorender if enabled
 updateTextBox(hObject, -Inf, Inf);
 calculateAxis(handles.axMandel, handles.mandelCx.Value, ...
     handles.mandelCy.Value, handles.mandelZoom.Value);
@@ -690,15 +552,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function mandelCy_Callback(hObject, eventdata, handles)
-% hObject    handle to mandelCy (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of mandelCy as text
-%        str2double(get(hObject,'String')) returns contents of mandelCy as a double
+% Update Cy TB, recalculate axis and autorender if enabled
 updateTextBox(hObject, -Inf, Inf);
 calculateAxis(handles.axMandel, handles.mandelCx.Value, ...
     handles.mandelCy.Value, handles.mandelZoom.Value);
@@ -718,20 +573,14 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
 % --- Executes on button press in showAxes.
 function showAxes_Callback(hObject, eventdata, handles)
-% hObject    handle to showAxes (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of showAxes
-if hObject.Value
+if hObject.Value % Axes enabled, set TickMode to auto
     handles.axMandel.XTickMode = 'auto';
     handles.axMandel.YTickMode = 'auto';
     handles.axJulia.XTickMode = 'auto';
     handles.axJulia.YTickMode = 'auto';
-else
+else % Axes disabled, remove tick marks
     handles.axMandel.XTick = [];
     handles.axMandel.YTick = [];
     handles.axJulia.XTick = [];
@@ -740,91 +589,79 @@ end
 
 % --- Executes on button press in btnResetView.
 function btnResetView_Callback(hObject, eventdata, handles)
-% hObject    handle to btnResetView (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% Cell array containing all fields to be reset
 tbToReset = {handles.mandelCx, handles.mandelCy, handles.mandelZoom
              handles.juliaCx,  handles.juliaCy,  handles.juliaZoom};
-for i=1:numel(tbToReset)
+for i=1:numel(tbToReset) % Iterate through each and reset to default value
     tb = tbToReset{i};
+    % Reset smart TB with default string and numeric value
     setSmartTb(tb, tb.UserData{3}, tb.UserData{2});
 end
-
+% Recalcualte both axes
 calculateAxis(handles.axMandel,handles.mandelCx.Value,...
     handles.mandelCy.Value,handles.mandelZoom.Value);
 calculateAxis(handles.axJulia,handles.juliaCx.Value,...
     handles.juliaCy.Value,handles.juliaZoom.Value);
-
+% Auto-render if enabled
 if handles.autoRender.Value
     renderSub(1, 1, handles); 
 end
 
 % --- Executes on button press in btnHelp.
 function btnHelp_Callback(hObject, eventdata, handles)
-% hObject    handle to btnHelp (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
+helpMenu();
 
 % --- Executes on button press in btnResetAll.
 function btnResetAll_Callback(hObject, eventdata, handles)
-% hObject    handle to btnResetAll (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles.mandelImg.CData = [];
-handles.juliaImg.CData = [];
-
+% Transform handles element to cell array
 elems = struct2cell(handles);
-for i=1:numel(elems)
+for i=1:numel(elems) % For each element of handles struct
     child = elems{i};
-    if ~isequal(size(child), [1 1])
+    if ~isequal(size(child), [1 1]) % Check if single element
         continue; 
-    end
+    end % Check if UI element and is not inactive
     if isgraphics(child,'uicontrol') && ~strcmp(child.Enable, 'inactive')
         switch child.Style
-            case 'edit'
+            case 'edit' % Smart edit box, reset to default value/string
                 setSmartTb(child, child.UserData{3}, child.UserData{2});
             case {'checkbox', 'slider'}
+                % For these default was stored in UserData
                 child.Value = child.UserData;
-            case 'popupmenu'
+            case 'popupmenu' % Popupmenu defaults is just the first elem.
                 child.Value = 1;
         end
     end
 end
-
+% Reset titles
 title(handles.axMandel, 'Mandelbrot Set');
 title(handles.axJulia, 'Julia Set');
-
+% Clear image CDATA for both sets
+handles.mandelImg.CData = [];
+handles.juliaImg.CData = [];
+% Get images off the screen
 handles.mandelImg.XData = [1e10 1e10+1];
 handles.mandelImg.YData = [1e10 1e10+1];
 handles.juliaImg.XData = [1e10 1e10+1];
 handles.juliaImg.YData = [1e10 1e10+1];
-
+% Reset last reender iteration count (stored in btnRender userData)
 handles.btnRender.UserData = 1;
-updateAlgoSettings(0, handles);
-recomputeCmap(handles);
-resizeAxes(handles);
+updateAlgoSettings(0, handles); % Re-check algo settings
+recomputeCmap(handles);         % Recalculate color map
+resizeAxes(handles);            % Resize axis objects back
 
 % --- Executes on mouse press over axes background.
 function axMandel_ButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to axMandel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% Check if quick Julia feature is enabled and right click is pressed
 if handles.quickJulia.Value && eventdata.Button == 3
-    cpt = handles.axMandel.CurrentPoint(1,1:2);
-    setSmartTb(handles.juliaRe, cpt(1));
-    setSmartTb(handles.juliaIm, cpt(2));
-    renderSub(0, 1, handles);
+    cpt = handles.axMandel.CurrentPoint(1,1:2); % Current mouse pos in axis
+    setSmartTb(handles.juliaRe, cpt(1));        % Set Julia re part to X
+    setSmartTb(handles.juliaIm, cpt(2));        % Set Julia im part to Y
+    renderSub(0, 1, handles);                   % Re-render Julia set
 end
 
 % --- Executes on slider movement.
 function colorOffset_Callback(hObject, eventdata, handles)
-% hObject    handle to colorOffset (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+% Force color map recalculation
 recomputeCmap(handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -838,15 +675,9 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
 
-
 % --- Executes on slider movement.
 function colorBias_Callback(hObject, eventdata, handles)
-% hObject    handle to colorBias (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+% Force color map recalculation
 recomputeCmap(handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -860,27 +691,51 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
 
-% Set the value of a smart textbox
+%%%%%%%%%%%% END OF AUTOMATICALLY GENERATED CALLBACKS %%%%%%%%%%%%%
+%%%%%%%%%%%% SUBROUTINES BELOW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Small helper function to check resolution user input
+function [c,v] = checkRes(r)
+r = strtrim(r); % Remove spaces
+if endsWith(r,'max') % max syntax
+    c = -1;
+    if length(r) > 3 % Number before
+        c = -str2double(deblank(r(1:end-3)));
+    end % valid only if c is not NaN or 0
+    v = ~isnan(c) && c ~= 0;
+else % Else just parse number normally, check if at least 1 px
+    c = str2double(r);
+    v = ~isnan(c) && c == floor(c) && c >= 1;
+end
+
+% Set the value of a smart textbox. Smart textboxes are update using the
+% external updateTextBox function and are able to verify if user input is
+% correct before accepting it. See updateTextBox.m for more info.
 function setSmartTb(tb, value, valueStr)
-    if nargin < 3
+    if nargin < 3  % Set string value to direct converstion from numeric
         valueStr = num2str(value); 
     end
-    tb.Value = value;
-    tb.String = valueStr;
-    tb.UserData{1} = tb.String;
+    tb.Value = value;           % Set textbox value (curr. num. value)
+    tb.String = valueStr;       % Set textbox string (curr. str. value)
+    tb.UserData{1} = tb.String; % Set textbox last valid string
 
+% Fix contradictions in algo settings (between power and custom poly)
+% and choose the best specific algorithm for the situation.
 function updateAlgoSettings(forcePoly, handles)
 % Polynomial is not of the "one power" form with degree larger than 0
 if forcePoly
+    % Check if polynomial is not a perfect power, i.e. z^n
     if nnz(handles.customPoly.Value) ~= 1 ...
             || handles.customPoly.Value(end) ~= 1 ...
             || handles.customPoly.Value(1) ~= 0
+        % Set algo to smooth color any polynomial
         handles.currAlgo.String = 'SC any poly';
-        handles.algoType.Value = 1;
+        handles.algoType.Value = 1; % Force smooth color
+        % Update value of Z power field to degree of polynomial
         setSmartTb(handles.zPower, length(handles.customPoly.Value)-1);
-        checkAutoRender(handles);
+        checkAutoRender(handles); % Disable auto render if necessary
         return
-    end
+    end % Just update Z power to degree
     setSmartTb(handles.zPower, length(handles.customPoly.Value)-1);
 end
 % Reset polynomial field
@@ -894,16 +749,17 @@ if handles.zPower.Value == 2
     handles.currAlgo.String = [handles.currAlgo.String 'optimized'];
 else
     handles.currAlgo.String = [handles.currAlgo.String 'any power'];
-end
+end % Disable auto render if necessary, otherwise auto-render
 checkAutoRender(handles);
 if handles.autoRender.Value
     renderSub(1, 1, handles);
 end
 
-function checkAutoRender(handles)
 % Disables auto-render to protect the user from his foolishness if
-% necessary.
-
+% necessary. This prevents the app from freezing for minutes if a very
+% smart individual tries to pan a 8K 20000 iterations render with auto
+% render.
+function checkAutoRender(handles)
 % Number of visible plots
 nVis = strcmp(handles.axMandel.Visible, 'on') + ...
         strcmp(handles.axJulia.Visible, 'on');
@@ -915,64 +771,71 @@ res = [handles.resX.Value, handles.resY.Value];
 res = res.*((res > 0) - (res < 0).*pxPos(3:4));
 % Total pixel count
 pxCnt = nVis * prod(res);
-% Max allowed auto render = 200 iterations at power 2 and 1 megapixel with
-% combined zoom of 4000
-zoomPenalty = log(handles.mandelZoom.Value + handles.juliaZoom.Value);
-powerPenalty = 1 + 4*(handles.zPower > 2); % Min 5X overhead for unoptimized
-if handles.itCnt.Value * pxCnt * powerPenalty * zoomPenalty > 2e9
+% Either iteraitons >= 5000, image has more than 2MP or power change
+if handles.itCnt.Value >= 5000 || pxCnt > 2e6 || handles.zPower.Value > 2
     handles.autoRender.Value = 0;
-    handles.autoRender.Enable = 'off';
-else
-     handles.autoRender.Enable = 'on';
 end
 
+% Resize axes to have a correct size depending on what is rendered
 function resizeAxes(handles)
+% Both Mandel and Julia are rendered
 if handles.renderMandel.Value && handles.renderJulia.Value
+    % Allow to disable any plot
     handles.renderMandel.Enable = 'on';
     handles.renderJulia.Enable = 'on';
-    
+    % Set graph positions to the original one
     handles.axMandel.Position = handles.origMandelPos;
     handles.axJulia.Position = handles.origJuliaPos;
-    
+    % Set all axes and images visible
     handles.axMandel.Visible = 1;
     handles.axJulia.Visible = 1;
     handles.mandelImg.Visible = 1;
     handles.juliaImg.Visible = 1;
+% Only Mandel is on
 elseif handles.renderMandel.Value
+    % Prevent user from disabling all graphs
     handles.renderMandel.Enable = 'off';
-    
+    % Compute fullscreen width and height
     w = sum(handles.origJuliaPos([1,3])) - handles.origMandelPos(1);
     h = sum(handles.origJuliaPos([2,4])) - handles.origMandelPos(2);
     handles.axMandel.Position = [handles.origMandelPos(1:2) w h];
-    
-    handles.axMandel.Visible = 1;
+    % Set Julia stuff to invisible
     handles.axJulia.Visible = 0;
-    handles.mandelImg.Visible = 1;
     handles.juliaImg.Visible = 0;
+% Only Julia is on
 elseif handles.renderJulia.Value
+    % Prevent user from disabling all graphs
     handles.renderJulia.Enable = 'off';
-    
+    % Compute fullscreen width and height
     w = sum(handles.origJuliaPos([1,3])) - handles.origMandelPos(1);
     h = sum(handles.origJuliaPos([2,4])) - handles.origMandelPos(2);
     handles.axJulia.Position = [handles.origMandelPos(1:2) w h];
-    
+    % Set Mandel stuff to invisible
     handles.axMandel.Visible = 0;
-    handles.axJulia.Visible = 1;
     handles.mandelImg.Visible = 0;
-    handles.juliaImg.Visible = 1;
 end
+% Verify if auto-render should be left on
 checkAutoRender(handles);
+% Recalculate axis numberings
 calculateAxis(handles.axMandel, handles.mandelCx.Value, ...
     handles.mandelCy.Value, handles.mandelZoom.Value);
 calculateAxis(handles.axJulia, handles.juliaCx.Value, ...
     handles.juliaCy.Value, handles.juliaZoom.Value);
+% Auto render if necessary 
+if handles.autoRender.Value
+    renderSub(1, 1, handles);
+end
 
+% Render subroutine. Will render sets it was told to with the two bool
+% arguments.
 function renderSub(renderM, renderJ, handles)
+% If auto render is off, disable btnRender until render is done
+% drawnow() called to update the GUI so it shows the btn was disabled
 if handles.autoRender.Value == 0
     handles.btnRender.Enable = 'off';
     drawnow();
 end
-
+% Store resolution settings and map to convert UI algo names to true names
 resSettings = [handles.resX.Value, handles.resY.Value];
 descToAlgo = containers.Map(...
 {'SC optimized', 'SC any power', 'SC any poly', 'RR optimized', 'RR any power'}, ...
@@ -983,17 +846,22 @@ descToAlgo = containers.Map(...
 % outdated, it is still possible to obtain the current value.
 if handles.btnRender.UserData ~= handles.itCnt.Value
     handles.btnRender.UserData = handles.itCnt.Value;
-    recomputeCmap(handles);
+     % Recompute color map so coloring is accurate
+    recomputeCmap(handles, 1); % 1 for no auto re-coloring
 end
 
 % Mandelbrot render
 if renderM && strcmp(handles.axMandel.Visible, 'on')
+    % Compute algorithm parameters
     mSpace = [handles.axMandel.XLim handles.axMandel.YLim];
     pxPos = getpixelposition(handles.axMandel);
     res = resSettings;
-    for i=1:2
+    for i=1:2 % Handle 'max' notation, stored as neg. number
         if res(i) < 0; res(i) = round(-res(i) * pxPos(2+i)); end
     end
+    % Start time measuring and call render method, storing iteration
+    % counts if mandelImg's UserData. This allows to change coloring
+    % withouy re-render.
     tic();
     handles.mandelImg.UserData = mandelbrot(...
         handles.itCnt.Value, res, mSpace, ...
@@ -1003,23 +871,25 @@ if renderM && strcmp(handles.axMandel.Visible, 'on')
         'BulbCheck', handles.bulbCheck.Value, ...
         'Exponent', handles.zPower.Value, ...
         'EscapeValue', handles.escVal.Value);
-    renderTime = num2str(toc()); 
+    renderTime = num2str(toc()); % Display render time in title of graph
     title(handles.axMandel, ['Mandelbrot Set (T = ' renderTime ' sec)']);
-    displaySets(1, 0, handles);
+    displaySets(1, 0, handles); % Perform coloring and image displaying
+    % Change position of render to new one
     handles.mandelImg.XData = handles.axMandel.XLim;
     handles.mandelImg.YData = handles.axMandel.YLim;
 end
 % Julia render
 if renderJ && strcmp(handles.axJulia.Visible, 'on')
+    % Compute algorithm parameters
     mSpace = [handles.axJulia.XLim handles.axJulia.YLim];
     pxPos = getpixelposition(handles.axJulia);
     res = resSettings;
-    for i=1:2
+    for i=1:2 % Handle 'max' notation, stored as neg. number
         if res(i) < 0; res(i) = round(-res(i) * pxPos(2+i)); end
     end
     juliaAlgo = ['SC ' handles.currAlgo.String(4:end)];
     juliaPt = handles.juliaRe.Value + 1i*handles.juliaIm.Value;
-    tic();
+    tic(); % Time + store it. mat. Julia to juliaImg.UserData
     handles.juliaImg.UserData = julia(...
         juliaPt, handles.itCnt.Value, res, mSpace, ...
         'Algorithm', descToAlgo(juliaAlgo), ...
@@ -1027,17 +897,20 @@ if renderJ && strcmp(handles.axJulia.Visible, 'on')
         'Poly', handles.customPoly.Value, ...
         'Exponent', handles.zPower.Value, ...
         'EscapeValue', handles.escVal.Value);
-    renderTime = num2str(toc()); 
+    renderTime = num2str(toc()); % Display render time in title of graph
     title(handles.axJulia, ['Julia Set (T = ' renderTime ' sec)']);
-    displaySets(0, 1, handles);
+    displaySets(0, 1, handles); % Perform coloring and image displaying
+    % Change position of render to new one
     handles.juliaImg.XData = handles.axJulia.XLim;
     handles.juliaImg.YData = handles.axJulia.YLim;
 end
-
+% Re-enable render button and drawnow to reload visuals
 handles.btnRender.Enable = 'on';
 drawnow();
 
-function recomputeCmap(handles)
+% Recompute custom colormap based on user settings, and recalculate the
+% color for the last iteration count matrix.
+function recomputeCmap(handles, noReColor)
 cname = handles.cMap.String{handles.cMap.Value};
 fname = str2func(cname);
 % Colormap size - Clamped between 512 (total 1024) and 8192 (total 16384)
@@ -1072,46 +945,44 @@ else
     % Assign phase + frequency transform
     handles.cMap.UserData = cData(idxPhase,:);
 end
-% Force re-render
-displaySets(1,1,handles);
+if nargin == 1 || ~noReColor % Force re-color unless specified
+    displaySets(1,1,handles);
+end
 
+% Perform the coloring and displaying of the existing iteration data.
+% Called real time after any color setting changes
 function displaySets(showM, showJ, handles)
-dispCtrl = [showM showJ];
-imObjs = {handles.mandelImg handles.juliaImg};
-axObjs = {handles.axMandel handles.axJulia};
-cMap = handles.cMap.UserData;
-lenCMap = size(cMap,1);
-itCnt = handles.btnRender.UserData;
-
-% Measure time to color
-ltime = tic();
-
+dispCtrl = [showM showJ];                       % Bool to color each set
+imObjs = {handles.mandelImg handles.juliaImg};  % Mandel/Julia img objs
+axObjs = {handles.axMandel handles.axJulia};    % mandel/Julia axis objs
+cMap = handles.cMap.UserData;                   % current calc. colormap
+lenCMap = size(cMap,1);                         % size of colormap
+itCnt = handles.btnRender.UserData;             % iter. cnt. of last render
+% For each set (Mandelbrot/Julia)
 for i=1:2
-    im = imObjs{i};
-    ax = axObjs{i};
+    im = imObjs{i}; % Get img object
+    ax = axObjs{i}; % Get axis object
     if ~dispCtrl(i) || strcmp(ax.Visible, 'off')
-        continue;
+        continue; % Axis invisible or no coloring flag, continue
     end
-    
     % Compute integer and fractional parts of itData
     iPart = floor(im.UserData+1);
     fPart = im.UserData+1 - iPart;
     % Compute new mapped colors
     if handles.colorMethod.Value == 2
         % Histogram mode
-        itArea = zeros(1,itCnt+1);
-        for j=1:numel(iPart)
+        itArea = zeros(1,itCnt+2);
+        for j=1:numel(iPart) % Store number of px. to reach given it.cnt.
             itArea(iPart(j)) = itArea(iPart(j)) + 1;
         end
-        itMap = zeros(1,itCnt);
-        acc = 0;
+        itMap = zeros(1,itCnt); % Create map of itCnt->norm. color value
+        acc = 0; % Accumulator fox pixels
         for j=1:itCnt
-            itMap(j) = acc;
-            acc = acc + itArea(j); 
-        end
+            itMap(j) = acc; % Store current position
+            acc = acc + itArea(j); % Accumulate for next one
+        end % Normalize based on total iterations for whole render
         itMap = itMap / acc;
-    else
-        % Linear mode
+    else % Linear color mode, so linear uniform map
          itMap = (0:itCnt) / itCnt;
     end
     % Create a new map linear map from iterations to color map

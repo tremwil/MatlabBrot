@@ -1,3 +1,8 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% julia.m                  %
+% AUTHOR: William Tremblay %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Main dispatcher function, init complex space & call algorithm
 function [itMat] = julia(c, N, imSz, mSpace, varargin)
     % Handle keywords given without the optional ones
@@ -45,13 +50,15 @@ function [itMat] = algo_esc_val(c, N, mGrid, kw)
                 continue
             end
             % Set minimum escape of 100 for continuous coloring
-            nu = -1;
             if esc2 >= 10000
+                nu = -1;
                 log_zn = reallog(z*conj(z)) * 0.5;
                 nu = reallog( log_zn * inv_lnr) * inv_ln; 
+                % Consider potential function in iteration
+                itMat(i,j) = it + 1 - nu;
+            else
+                itMat(i,j) = it; 
             end
-            % Consider potential function in iteration
-            itMat(i,j) = it + 1 - nu;
         end
     end
 end

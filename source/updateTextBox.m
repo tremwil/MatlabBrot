@@ -1,3 +1,8 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% updateTextBox.m          %
+% AUTHOR: William Tremblay %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Handles key down in edit boxes to make sure the accepted values
 % are valid according to a range and a custom function with 2 outputs:
 % The first should be a transformed value to be saved in the settings
@@ -7,6 +12,11 @@
 % the box will turn red (indicating a wrong value). At this point,
 % switching to another UI element will reset the value to the last correct
 % one.
+
+% Numeric value stored in Value, and UserData is a cell array containing:
+% - Elem 1: Last accepted string (to cancel invalid user input)
+% - Elem 2: Default string (for reset)
+% - Elem 3: Default numeric value (for reset)
 
 function valid = updateTextBox(src, min, max, func, ignore)
     if nargin > 3
@@ -20,6 +30,9 @@ function valid = updateTextBox(src, min, max, func, ignore)
     end
     % Get last pressed character
     vk = get(gcf, 'CurrentCharacter');
+    % using disp is necessary to prevent double callbacks for some unknown
+    % reason, probably has to to with the inernal system that Matlab uses
+    % to handle window focus and events (or mabye timing?)
     disp(int32(vk));
     if valid % Input valid, save value
         src.BackgroundColor = [1.0 1.0 1.0];    % Normal background

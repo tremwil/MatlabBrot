@@ -1,3 +1,10 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% interactiveAxis.         %
+% AUTHOR: William Tremblay %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Implement dynamic pan and zoom in axes for mandelPlotter.m. Must be bound
+% to WindowButtonMotionFcn with handles curried from an anonymous function
 function interactiveAxis(src, evt, handles)
     % Check if dynamic zoom is disabled
     zoomCB = handles.dynamicZoom;

@@ -1,3 +1,8 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% mandelbrot.m             %
+% AUTHOR: William Tremblay %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Main dispatcher function, init complex space & call algorithm
 function [itMat] = mandelbrot(N, imSz, mSpace, varargin)
     % Handle keywords given without the optional ones
@@ -211,7 +216,7 @@ end
 % Mandelbrot set and it's lemniscates. Optimized for the power = 2 case.
 % The fastest Mandelbrot algorithm for high resolution. When the number of
 % iterations is high w.r.t the resolution, the smooth color algorithm is
-% slightly faster. 
+% slightly faster if no large set spots are in the area. 
 function [itMat] = algo_quadtree2(N, mGrid, kw)
     esc2 = kw('escapevalue')^2;     % Compute square escape value
     bc = kw('bulbcheck');           % Bulb check on/off
