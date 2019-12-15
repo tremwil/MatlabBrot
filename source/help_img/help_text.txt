@@ -1,0 +1,78 @@
+>UI / What To Render
+The main UI allows 3 setups for rendering, which will be shown in the following slides.
+
+The buttons 'Render Mandelbrot' and 'Render Julia' (red) control these settings.
+
+In This Picture:
+We are rendering both the Mandelbrot and Julia sets at once. When this is the case, you can right click on the Mandelbrot set to render the Julia set at the click position if "Quick Julia" (green) is enabled.
+
+Note the "Auto render" checkbox (blue). Setting this will re-render the images after any changes to the parameters.
+
+>Rendering Only Mandelbrot
+As can be seen on the image, here only the Mandelbrot set is displayed, because "Render Julia" is off. The image becomes bigger so we can see the set in more detail.
+
+>Rendering Only Julia
+As can be seen on the image, here only the Julia set is displayed, because "Render Mandelbrot" is off. The "Julia point" (green) controls the C parameter for the Julia set.
+
+>Rendering Custom Sets
+Here we are rendering a custom Mandelbrot set. This can be done by changing the "Custom Polynomial" field (red). Note that this demands much more render time than normal Mandelbrot sets. As such, "Auto render" (blue) is off.
+
+>Effects of Different Parameters
+The next images will compare the visual effect of different algorithmic or coloring parameters. This image will be used as a reference.
+
+In this image, the "Histogram" color mode (red) is selected. It calculates a histogram of the iteration counts in the image so that the color distribution follows the iteration distribution. This has the benefit of leaving the color scheme unchanged by different iteration levels, but it makes it dependent on the zoom level.
+
+>Chosing the Algorithm
+When compared to the previous image, this one shows discrete color bars. This is because the algorithm type selected (red) is set to "Rectangle recursive". This algorithm uses the fact that the Multibrot sets are simply connected to draw it using progressively smaller rectangles. However, it is not capable of smooth coloring. If this option was set to "Smooth color" (as it was before), then the image would have a smoother color scheme provided the escape value is at least 100.
+
+Which One to Choose?
+Rectangle recursive is very fast when the image has a large numbers of set points. However, it suffers from a performance overhead since it is more complex. Thus, the one to chose depends on how much of the set is shown on the render.
+
+
+NOTE: This option doesn't apply to Julia sets and custom non-perfect-power Mandelbrot sets, as they are not guaranteed to have  the required property.
+
+>The Resolution
+The resolution option (red) affects how many pixels the renderer will use on each axis (X and Y). Resolution can be entered as a number directly. when "max" is written after the number, it will treat it as a multiple of screen pixel resolution. Leaving it at "max" all the time is recommended.
+
+In This Image:
+The resolution was set to "0.3max", meaning it will render at 30% of the screen resolution. This is why it appears pixely. Note that a "2max" render (or more) is possible, but the effect will only be visible in saved images.
+
+>The Iteration Count
+The iteration count (red) controls the maximum number of iterations before a point is considered to be in the Mandelbrot or Julia set. The higher it is, the render will be more faithful to the "true" set (infinite iterations).
+
+In This Image:
+The iteration count was dropped from 2000 to 200. At high zooms, this drastically lowers the faithfulness of the render: Many points colored in black are not truly in the set.
+
+>Linear coloring mode
+As can be seen here, changing the coloring mode from "Histogram" to "Linear" (red) drastically changes the color distribution. Linear color mode assigns the colors linearly from iteration 0 to the maximum iteration count. This has the benefit of being invariant to zoom level, but changing the number of iterations will leave all the contrast closer to the set. 
+
+What Mode to Choose:
+Any color mode can be used to make great renders. The additional color settings allow to adapt any color mode to the situation. However, as a general rule histogram is better for images with a low"Color multiplier".
+
+>Colormaps
+The "Colormap" setting (red) determines the color scheme of the image. Here, it was changed to "cool", a cyan to magenta colormap. There are many other colormaps that give different effects.
+
+>The Color Multiplier
+The "Color Multiplier" option (red) increases the density of colors in the image by repeating the colormap for the given number of times. For example, on this image the colors are much now closer together, and they repeat more. This is a good way to add detail when using linear color mode, but for high values it can lead to noise close to the points that are inside the sets (black pixels).
+
+NOTE: The order of application of the color modifiers is as follows: 
+Color Bias --> Color Multiplier --> Color Offset.
+
+>The Color Offset
+In the current image, one can see the color scheme has shifted inwards. This is a consequence of lowering the "Color offset" property. The coloring algorithm assigns the colors periodically with a frequency of "Color Mult'. The color offset is the phase (initial color) of the calculated colormap.
+
+The effects of changing the color offset depend greatly on the colormap. It is a useful tool to bring out certain colors in different regions.
+
+NOTE: The order of application of the color modifiers is as follows: 
+Color Bias --> Color Multiplier --> Color Offset.
+
+>The Color Bias
+The color bias parameter (red) induces a bias in the color distribution of the colormap. Setting it to low will make colors tend towards the lowest color, and vice-versa.
+
+Here, the color bias has been drastically increased, so the red color became more prevalent than others. The main use of the color bias depends on the coloring mode. In linear mode, it helps bring out high colors when the iteration number is high. In histogram mode, it is often used for the opposite (bringing the background back to a low color).
+
+NOTE: The order of application of the color modifiers is as follows: 
+Color Bias --> Color Multiplier --> Color Offset.
+
+>Tooltips
+Hopefully this help panel has been helpful! If detail about another setting is needed, hovering over it will show a tooltip (like in this image). However, the best way to learn is to play with the parameters!

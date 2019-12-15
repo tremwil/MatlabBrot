@@ -58,7 +58,6 @@ handles.output = hObject;
 handles.imgObj = image(handles.helpImgAx, 'CData', 0,...
     'XData', [1e10 1e10+1], 'YData', [1e10 1e10+1]);
 handles.imgObj.UserData = 1;
-handles.imgObj.ButtonDownFcn = @(s,e) helpImgAx_ButtonDownFcn(s,e,handles);
 % Load image CData
 handles.imData = {};
 i = 1;
@@ -66,22 +65,25 @@ while isfile(['help_img/' num2str(i) '.PNG'])
     handles.imData{end+1} = imread(['help_img/' num2str(i) '.PNG']);
     i = i + 1;
 end
-handles.helpText = {};
-currImg = struct();
-% Load text strings
-for i = 1:length(handles.helpTxtBox.String)
-    line = handles.helpTxtBox.String{i};
+% Create struct array containing help text
+handles.helpText = struct();
+% Load text strings from text file
+helpTextLines = strsplit(fileread('help_img/help_text.txt'), '\n');
+% Parse lines looking for '>' (symbolizes new page) and store in struct
+j = 0; % Current page
+for i = 1:length(helpTextLines)
+    line = helpTextLines{i};
     if ~isempty(line) && line(1) == '>'
-        if ~isempty(fieldnames(currImg))
-            handles.helpText{end+1} = currImg;
-        end
-        currImg.title = line(2:end);
-        currImg.lines = {};
+        j = j + 1; % New page, increment page counter
+        handles.helpText(j).title = line(2:end); % Store title
+        handles.helpText(j).lines = {};          % Create string array
     else
-        currImg.lines{end+1} = line;
+        handles.helpText(j).lines{end+1} = line; % Append line to str arr.
     end
 end
-handles.helpText{end+1} = currImg;
+% Set BtnDownFunc of image object to axis one, currying the handles
+handles.imgObj.ButtonDownFcn = @(s,e) helpImgAx_ButtonDownFcn(s,e,handles);
+% Load first help image & text
 loadSelectedImg(handles)
 
 guidata(hObject, handles);
@@ -164,6 +166,5 @@ handles.imgObj.CData = imresize(img, 3);
 % Change current image indicator
 handles.cImgTxt.String = ['Image ' num2str(i) '/' num2str(length(handles.imData))];
 % Load help title & text
-ht = handles.helpText{i};
-title(handles.helpImgAx, ht.title);
-handles.helpTxtBox.String = ht.lines;
+handles.txtTitle.String = handles.helpText(i).title;
+handles.helpTxtBox.String = handles.helpText(i).lines;

@@ -27,7 +27,7 @@ function varargout = mandelPlotter(varargin)
 
 % Edit the above text to modify the response to help mandelPlotter
 
-% Last Modified by GUIDE v2.5 12-Dec-2019 20:38:12
+% Last Modified by GUIDE v2.5 14-Dec-2019 12:23:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
